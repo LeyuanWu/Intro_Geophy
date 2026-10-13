@@ -1,0 +1,9 @@
+# Files larger than 20 MB
+Thebault_2021_LithoMag/west_china_dem_15s_p.nc
+Thebault_2021_LithoMag/west_china_mag_01m_g.nc
+Thebault_2021_LithoMag/Thebault_1050.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
