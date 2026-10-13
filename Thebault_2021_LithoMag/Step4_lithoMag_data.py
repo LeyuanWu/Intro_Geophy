@@ -12,7 +12,7 @@ from LW_CordTrans import *
 # %%
 # # ! ROI & DEM & dt
 # ROI
-ROI = [106, 107, 32, 33]
+ROI = [106, 107, 33, 34]
 lon_min, lon_max, lat_min, lat_max = ROI
 # DEM
 xr_dem = xr.open_dataarray("west_china_dem_15s_p.nc")
@@ -32,7 +32,7 @@ print(f"dt diff: {np.nanmax(arr_dt_roi)-np.nanmin(arr_dt_roi)} nT")
 # %%
 # # ! DEM -> ECEF -> Geocentric
 str_calc = "plane" # "curve" or "plane"
-res = 1.0/60 # degree
+res = 0.25/60 # degree
 dh_curve = 500     # height above DEM (m)
 dh_plane = 200     # height above max_dem (m)
 n_lon = int((lon_max-lon_min)/res)+1
@@ -125,6 +125,16 @@ Dt = B_tot - B0_main
 Dt_m_dt = Dt - dt
 # %% 
 # # ! Write data to .txt file
+# Planar approximation: center lon/lat as origin, h=0 as origin
+R_Earth = 6371.2e3  # Earth's mean radius in meters (consistent with magnetic model reference radius)
+mean_lon = (lon_min + lon_max) / 2.0
+mean_lat = (lat_min + lat_max) / 2.0
+x = R_Earth * np.deg2rad(LAT_gd - mean_lat)
+y = R_Earth * np.cos(np.deg2rad(mean_lat)) * np.deg2rad(LON_gd - mean_lon)
+z = - H_m 
+dx = R_Earth * np.deg2rad(res)
+dy = R_Earth * np.cos(np.deg2rad(mean_lat)) * np.deg2rad(res)
+
 with open(f"lithoMag_data_{str_calc}.txt", "w") as f:
     # Header comments
     f.write("# ==============================================================================\n")
@@ -140,31 +150,46 @@ with open(f"lithoMag_data_{str_calc}.txt", "w") as f:
     f.write("# Main field model: IGRF-13 (lmax=13, year=2015)\n")
     f.write("# Lithospheric field model: Thebault_1050 (lmax=1050)\n")
     f.write("# Coordinate system: geodetic (WGS84) for lon/lat/H; NED for Bx/By/Bz\n")
-    f.write("# Units: lon/lat in degree, H in meter, B in nT\n")
+    f.write("# Planar approximation (x,y,z): origin at (mean_lon, mean_lat, h=0)\n")
+    f.write(f"#   mean_lon = {mean_lon:.6f} deg, mean_lat = {mean_lat:.6f} deg\n")
+    f.write(f"#   dx (grid spacing, lat direction) = {dx:.3f} m\n")
+    f.write(f"#   dy (grid spacing, lon direction) = {dy:.3f} m\n")
+    f.write("# The following planar approx. equations lon/lat in radians\n")
+    f.write("#   x = R_Earth * (lat - mean_lat)                 [northward, m]\n")
+    f.write("#   y = R_Earth * cos(mean_lat) * (lon - mean_lon) [eastward, m]\n")
+    f.write("#   z = -H                                         [downward, m]\n")
+    f.write("# Units: lon/lat in degree, H/x/y/z in meter, B in nT\n")
     f.write("# ==============================================================================\n")
     f.write("# Column descriptions:\n")
     f.write("#   1: lon    - geodetic longitude (deg)\n")
     f.write("#   2: lat    - geodetic latitude (deg)\n")
     f.write("#   3: H      - height above ellipsoid (m)\n")
-    f.write("#   4: Bx_main - main field X-component (northward) (nT)\n")
-    f.write("#   5: By_main - main field Y-component (eastward) (nT)\n")
-    f.write("#   6: Bz_main - main field Z-component (downward) (nT)\n")
-    f.write("#   7: Bx_litho - lithospheric field X-component (northward) (nT)\n")
-    f.write("#   8: By_litho - lithospheric field Y-component (eastward) (nT)\n")
-    f.write("#   9: Bz_litho - lithospheric field Z-component (downward) (nT)\n")
-    f.write("#  10: dt     - projection of lithospheric field onto main field (nT)\n")
-    f.write("#  11: Dt     - scalar difference |B_total| - |B_main| (nT)\n")
-    f.write("#  12: Dt-dt  - difference between scalar and projection approaches (nT)\n")
+    f.write("#   4: x      - planar x-coordinate (northward) (m)\n")
+    f.write("#   5: y      - planar y-coordinate (eastward) (m)\n")
+    f.write("#   6: z      - planar z-coordinate (downward) (m)\n")
+    f.write("#   7: Bx_main - main field X-component (northward) (nT)\n")
+    f.write("#   8: By_main - main field Y-component (eastward) (nT)\n")
+    f.write("#   9: Bz_main - main field Z-component (downward) (nT)\n")
+    f.write("#  10: Bx_litho - lithospheric field X-component (northward) (nT)\n")
+    f.write("#  11: By_litho - lithospheric field Y-component (eastward) (nT)\n")
+    f.write("#  12: Bz_litho - lithospheric field Z-component (downward) (nT)\n")
+    f.write("#  13: dt     - projection of lithospheric field onto main field (nT)\n")
+    f.write("#  14: Dt     - scalar difference |B_total| - |B_main| (nT)\n")
+    f.write("#  15: Dt-dt  - difference between scalar and projection approaches (nT)\n")
     f.write("# ==============================================================================\n")
-    f.write("# lon(deg)   lat(deg)      H(m)"
+    f.write("# lon(deg)    lat(deg)      H(m)"
+            "      x(m)        y(m)       z(m)"
             "   Bx_main   By_main   Bz_main"
             "  Bx_litho  By_litho  Bz_litho"
             "    dt(nT)    Dt(nT)     Dt-dt\n")
     data = np.column_stack([
         LON_gd.ravel(), LAT_gd.ravel(), H_m.ravel(),
+        x.ravel(), y.ravel(), z.ravel(),
         Bx_main_gd.ravel(), By_main_gd.ravel(), Bz_main_gd.ravel(),
         Bx_litho_gd.ravel(), By_litho_gd.ravel(), Bz_litho_gd.ravel(),
         dt.ravel(), Dt.ravel(), Dt_m_dt.ravel()
     ])
-    np.savetxt(f, data, fmt="%10.6f %10.6f %9.3f %9.2f %9.2f %9.2f %9.2f %9.2f %9.2f %9.2f %9.2f %9.2f")
+    np.savetxt(f, data,
+               fmt="%10.6f %10.6f %10.3f %10.3f %10.3f %10.3f"
+                   " %9.2f %9.2f %9.2f %9.2f %9.2f %9.2f %9.2f %9.2f %9.2f")
     print(f"Data written to lithoMag_data_{str_calc}.txt ({data.shape[0]} rows x {data.shape[1]} cols)")
