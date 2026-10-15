@@ -46,8 +46,8 @@ def load_dt_to_xarray(filepath):
     return da
 
 # %% # ! Load curve & plane dt
-xr_dt_curve = load_dt_to_xarray("lithoMag_data_curve.txt")
-xr_dt_plane = load_dt_to_xarray("lithoMag_data_plane.txt")
+xr_dt_curve = load_dt_to_xarray("lithomag_data_curve.txt")
+xr_dt_plane = load_dt_to_xarray("lithomag_data_plane.txt")
 
 # 计算差值
 dt_diff = xr_dt_curve - xr_dt_plane
@@ -139,6 +139,6 @@ with fig.subplot(
             position="JMR+o0.4c/0c+w7c/0.3c",
         )
 
-fig.savefig(f"lithoMag_mapping.png", dpi=300)
+fig.savefig(f"lithomag_mapping.png", dpi=300)
 fig.show(dpi=300, width=800)
-print("Figure saved to lithoMag_mapping.png")
+print("Figure saved to lithomag_mapping.png")

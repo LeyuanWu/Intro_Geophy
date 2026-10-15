@@ -22,7 +22,7 @@ xr_dem_roi = xr_dem.where(mask_lon & mask_lat, drop=True)
 arr_dem_roi = xr_dem_roi.data
 print(f"DEM height diff: {np.nanmax(arr_dem_roi)-np.nanmin(arr_dem_roi)} m")
 # dt
-xr_mag = xr.open_dataset("west_china_mag_01m_g.nc")
+xr_mag = xr.open_dataset("west_china_lithomag_01m_g.nc")
 xr_dt = xr_mag["dt"]
 mask_lon = (xr_dt.lon >= lon_min) & (xr_dt.lon <= lon_max)
 mask_lat = (xr_dt.lat >= lat_min) & (xr_dt.lat <= lat_max)
@@ -135,7 +135,7 @@ z = - H_m
 dx = R_Earth * np.deg2rad(res)
 dy = R_Earth * np.cos(np.deg2rad(mean_lat)) * np.deg2rad(res)
 
-with open(f"lithoMag_data_{str_calc}.txt", "w") as f:
+with open(f"lithomag_data_{str_calc}.txt", "w") as f:
     # Header comments
     f.write("# ==============================================================================\n")
     f.write("# Lithospheric and Main Magnetic Field Data\n")
@@ -192,4 +192,4 @@ with open(f"lithoMag_data_{str_calc}.txt", "w") as f:
     np.savetxt(f, data,
                fmt="%10.6f %10.6f %10.3f %10.3f %10.3f %10.3f"
                    " %9.2f %9.2f %9.2f %9.2f %9.2f %9.2f %9.2f %9.2f %9.2f")
-    print(f"Data written to lithoMag_data_{str_calc}.txt ({data.shape[0]} rows x {data.shape[1]} cols)")
+    print(f"Data written to lithomag_data_{str_calc}.txt ({data.shape[0]} rows x {data.shape[1]} cols)")

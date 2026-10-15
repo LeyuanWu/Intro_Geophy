@@ -62,6 +62,6 @@ for j in range(n_lat):
             font=font,
             justify="CM"
         )
-fig_dt.savefig("west_china_lithoMag_dt.png", dpi=300)
+fig_dt.savefig("west_china_lithomag_dt.png", dpi=300)
 fig_dt.show(dpi=300, width=800)
 

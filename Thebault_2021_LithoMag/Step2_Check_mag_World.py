@@ -14,7 +14,7 @@ import pyshtools as pysh
 import xarray as xr
 # %%
 # # ! Earth’s <main> magnetic field model
-res = 1./60 # degree
+res = 5./60 # degree
 print(f"Grid resolution: {int(60*res)} min")
 ######## * SHMagCoeffs
 clm_mag_main = pysh.SHMagCoeffs.from_file('igrf13coeffs.txt', 
@@ -117,7 +117,7 @@ for grid, label, fname, series in panels:
     fig.colorbar(
         frame=[f"x+l{label}", "y+lnT"],
         position="JBC+o0c/0.5c+w10c/0.3c+h")
-    fig.savefig(f"Litho_{fname}_world_res{int(res*60):d}min.png", dpi=300)
+    fig.savefig(f"lithomag_{fname}_world_res{int(res*60):d}min.png", dpi=300)
     fig.show(dpi=300, width=800)
 # %%
 # # ! Extract data belongs to the ROI and save to .nc 
@@ -135,6 +135,6 @@ xr_roi = xr_litho_anomaly.where(
 )
 
 xr_roi.attrs['region'] = f'lon:[{lon_min},{lon_max}], lat:[{lat_min},{lat_max}]'
-fname_nc = f"west_china_mag_{int(res*60):02d}m_g.nc"
+fname_nc = f"west_china_lithomag_{int(res*60):02d}m_g.nc"
 xr_roi.to_netcdf(fname_nc)
 print(f"ROI data saved to: {fname_nc}")
