@@ -94,14 +94,18 @@ xr_litho_anomaly.attrs.update({
 })
 
 # %% # ! Extract data belonging to the ROI and save to .nc 
-str_reg = "NEPacific"  # or "NorthAtlantic"
-reg_NEPacific = [220., 235., 38., 52.]       # Juan de Fuca Ridge
-reg_NorthAtlantic = [325., 340., 57., 63.]   # Reykjanes Ridge
+str_reg = "MidAtlantic"  # "EastPacific" or "MidAtlantic"
+# 东太平洋海隆（快速，~100–150 mm/yr）
+# 15°S–45°N, 145°W–85°W
+reg_EastPacific = [215, 275, -15., 45.]     
+# 中大西洋脊（慢速，~25 mm/yr）
+# 10°S–50°N, 65°W–5°W（中心约 20°N, 35°W）  
+reg_MidAtlantic = [295., 355., -10, 50.] 
 
-if str_reg == "NEPacific":
-    lon_min, lon_max, lat_min, lat_max = reg_NEPacific
-elif str_reg == "NorthAtlantic":
-    lon_min, lon_max, lat_min, lat_max = reg_NorthAtlantic
+if str_reg == "EastPacific":
+    lon_min, lon_max, lat_min, lat_max = reg_EastPacific
+elif str_reg == "MidAtlantic":
+    lon_min, lon_max, lat_min, lat_max = reg_MidAtlantic
 
 # Use .sel() — more reliable than .where() for box extraction
 # Handle both ascending and descending latitude coordinates automatically
