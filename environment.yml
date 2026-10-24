@@ -1,0 +1,25 @@
+name: geophy
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.11
+  # Geoscience & Visualization
+  - pyshtools
+  - pygmt
+  - pyvista
+  - xarray
+  - numba
+  # Jupyter / VSCode Interactive Support
+  - jupyterlab
+  - ipykernel
+  # PyVista Trame Backend (Required for interactive plots in VSCode)
+  - trame
+  - trame-vtk
+  - trame-vuetify
+  - ipywidgets
+  # Common Dependencies
+  - numpy
+  - scipy
+  - matplotlib
+  - pandas
