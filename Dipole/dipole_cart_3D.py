@@ -7,11 +7,11 @@ import numpy as np
 import pyvista as pv
 from magnetic_forward_numba import *
 # %%
-# # ! Vertical/Horizontal Dipole
-mu0 = 4 * np.pi * 1e-7  # Permeability of free space in H/m
+# # ! Vertical/Horizontal Dipole/Component
+mu0 = 4 * np.pi * 1e-7   # Permeability of free space in H/m
 M = 100.                 # Dipole moment magnitude in A·m²
-dip_orient = 'D'         # 'D' = Downward dipole, 'N' = Northward dipole
-comp = 'N'               # 'D' = Down component Bd, 'N' = North component Bn
+dip_orient = 'D'         # 'D' = Downward dipole,    'N' = Northward dipole
+comp = 'N'               # 'D' = Downward component, 'N' = Northward component
 if dip_orient.upper() == 'D':
     mx, my, mz = 0., 0., M
 elif dip_orient.upper() == 'N':
@@ -55,13 +55,12 @@ GridZ0.point_data['bn'] = obs_bn_f
 GridZ0.point_data['be'] = obs_be_f
 GridZ0.point_data['bd'] = obs_bd_f
 # %%
-# # ! Dipole marker (arrow)
-norm_M = np.linalg.norm(dip_M)
-dir_M = dip_M / norm_M
+# # ! Dipole marker
+dir_M = dip_M / np.linalg.norm(dip_M)
 arrow_scale = 5.0
 dipole_arrow = pv.Arrow(
     start=pos_M - 0.5 * arrow_scale * dir_M, direction=dir_M,
-    tip_length=0.25, tip_radius=0.12,shaft_radius=0.04,
+    tip_length=0.25, tip_radius=0.12, shaft_radius=0.04,
     tip_resolution=24, shaft_resolution=24, scale=arrow_scale,
 )
 # %%
@@ -70,7 +69,7 @@ mesh_vec = pv.PolyData(obs_ned)
 mesh_vec.point_data['vectors'] = obs_B
 mesh_vec.point_data['magnitude'] = np.log(2.0 + mag_B)
 
-custom_arrow = pv.Arrow(
+mag_arrow = pv.Arrow(
     tip_length=0.30,      # Length of the cone tip (fraction of total)
     tip_radius=0.10,      # Thickness of the cone tip
     shaft_radius=0.03,    # Thickness of the cylinder shaft
@@ -78,49 +77,30 @@ custom_arrow = pv.Arrow(
     shaft_resolution=24   # Smoothness of the shaft
 )
 
-mag_arrow = mesh_vec.glyph(
-    orient='vectors',
-    scale='magnitude',
-    factor=1.0,         
-    geom=custom_arrow,
-    progress_bar=False
-)
+mesh_magvec = mesh_vec.glyph(
+    orient='vectors', scale='magnitude', factor=1.0, 
+    geom=mag_arrow, progress_bar=False)
 
 pl = pv.Plotter(notebook=True, window_size=[800, 600], image_scale=3)
 pl.set_background('white') 
 
-# Mag Arrows
-pl.add_mesh(
-    mag_arrow,
-    color='black',
-    show_scalar_bar=False)
+# * Magnetic field arrows
+pl.add_mesh(mesh_magvec, color='black', show_scalar_bar=False)
 
-# Contour
+# * Contour
 bc_max = np.abs(obs_bc_f).max()
-contours = GridZ0.contour(isosurfaces=20, 
-                          scalars=comp_name, 
-                          rng=[-bc_max, bc_max])
-pl.add_mesh(
-    contours,
-    color='black',
-    line_width=4,
-    render_lines_as_tubes=True,
-)
+contours = GridZ0.contour(isosurfaces=20, scalars=comp_name, rng=[-bc_max, bc_max])
+pl.add_mesh(contours, color='black', line_width=4, render_lines_as_tubes=True)
 
 pl.add_mesh(
-    GridZ0,
-    scalars=comp_name,
-    cmap='seismic',
-    clim=[-bc_max, bc_max],
-    show_scalar_bar=True,
+    GridZ0, scalars=comp_name, cmap='seismic', clim=[-bc_max, bc_max],
+    opacity=0.8, show_scalar_bar=True,
     scalar_bar_args=dict(title=comp_label,
                          title_font_size=16, 
                          label_font_size=14,
                          position_x=0.3, 
                          position_y=0.1, 
-                         n_labels=5, fmt='%.1f'),
-    opacity=0.8,
-)
+                         n_labels=5, fmt='%.1f'))
 
 # Dipole marker
 pl.add_mesh(dipole_arrow, color='cyan', show_scalar_bar=False)
@@ -133,15 +113,19 @@ pl.add_text(f"{dip_orient.upper()}-dipole / {comp.upper()}-component",
 
 # View  
 if dip_orient == 'D'and comp == 'D':
-    az = 160
+    az, el = 160, -18
 elif dip_orient == 'D'and comp == 'N':
-    az = 90
-v_az, v_el = np.deg2rad(az), np.deg2rad(-18)
+    az, el = 90, -18
+elif dip_orient == 'N'and comp == 'D':
+    az, el = 90, -18
+elif dip_orient == 'N'and comp == 'N':
+    az, el = 90, -18
+v_az, v_el = np.deg2rad(az), np.deg2rad(el)
 pl.view_vector([np.cos(v_el)*np.cos(v_az),
                 np.cos(v_el)*np.sin(v_az),
                 np.sin(v_el)])
 pl.camera.up = (0, 0, -1)   
-pl.camera.zoom(1.4)
+pl.camera.zoom(1.6)
 pl.camera.focal_point = (0., -3., 0.)
 
 ######## * Choose for interactive 
