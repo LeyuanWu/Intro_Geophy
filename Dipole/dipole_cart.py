@@ -4,21 +4,29 @@
 # %%
 # # ! Setup
 import numpy as np
-from matplotlib import cm
-import matplotlib.pyplot as plt
 import pyvista as pv
-from pyvista import examples
 from magnetic_forward_numba import *
 # %%
 # # ! Vertical/Horizontal Dipole
-mu0 = 4 * np.pi * 1e-7 # Permeability of free space in H/m
-mx, my, mz = 0., 0., 100. # Dipole moment components in A·m²
+mu0 = 4 * np.pi * 1e-7  # Permeability of free space in H/m
+M = 100.                 # Dipole moment magnitude in A·m²
+dip_orient = 'D'         # 'D' = Downward dipole, 'N' = Northward dipole
+comp = 'N'               # 'D' = Down component Bd, 'N' = North component Bn
+if dip_orient.upper() == 'D':
+    mx, my, mz = 0., 0., M
+elif dip_orient.upper() == 'N':
+    mx, my, mz = M, 0., 0.
 dip_M = np.array([mx, my, mz])
 pos_M = np.array([0, 0, 10.])
+comp_info = {
+    'D': ('bd', r'$B_z$ (nT)'),
+    'N': ('bn', r'$B_x$ (nT)')
+}
+comp_name, comp_label = comp_info[comp.upper()]
 # %%
 # # ! Corse grid for arrows
-nor_min, nor_max, n_nor = -30., 30., 13
-est_min, est_max, n_est = -30., 30., 13
+nor_min, nor_max, n_nor = -20., 20., 9
+est_min, est_max, n_est = -20., 20., 9
 dwd_min, dwd_max, n_dwd = -10., 0., 3
 Nor = np.linspace(nor_min, nor_max, n_nor)
 Est = np.linspace(est_min, est_max, n_est)
@@ -31,33 +39,30 @@ mag_B = np.sqrt(obs_bn**2 + obs_be**2 + obs_bd**2)
 obs_B = np.column_stack((obs_bn, obs_be, obs_bd))
 # %%
 # # ! Fine grid for contour
-nor_1, nor_2, Nnor = -30., 30., 61
-est_1, est_2, Nest = -30., 30., 61
+nor_1, nor_2, Nnor = -20., 20., 81
+est_1, est_2, Nest = -20., 20., 81
 NorF = np.linspace(nor_1, nor_2, Nnor)
 EstF = np.linspace(est_1, est_2, Nest)
 NORF, ESTF = np.meshgrid(NorF, EstF)
 DWDF = 0.0 * np.ones(NORF.shape)
-obs_nor_f, obs_est_f, obs_dwd_f = NORF.ravel(), ESTF.ravel(), DWDF.ravel()
+obs_nor_f, obs_est_f, obs_dwd_f = NORF.ravel('F'), ESTF.ravel('F'), DWDF.ravel('F')
 obs_ned_f = np.column_stack((obs_nor_f, obs_est_f, obs_dwd_f))
 obs_bn_f, obs_be_f, obs_bd_f = dipole_field(obs_ned_f, dip_M, pos_M)
+# Select the scalar array for contour / surface plot based on comp
+obs_bc_f = obs_bn_f if comp_name == 'bn' else obs_bd_f
 GridZ0 = pv.StructuredGrid(NORF, ESTF, DWDF)
-GridZ0.point_data['bd'] = obs_bd_f.copy()
-GridZ0.point_data['be'] = obs_be_f.copy()
-GridZ0.point_data['bn'] = obs_bn_f.copy()
+GridZ0.point_data['bn'] = obs_bn_f
+GridZ0.point_data['be'] = obs_be_f
+GridZ0.point_data['bd'] = obs_bd_f
 # %%
 # # ! Dipole marker (arrow)
 norm_M = np.linalg.norm(dip_M)
 dir_M = dip_M / norm_M
 arrow_scale = 5.0
 dipole_arrow = pv.Arrow(
-    start=pos_M - 0.5 * arrow_scale * dir_M,
-    direction=dir_M,
-    tip_length=0.25,
-    tip_radius=0.12,
-    shaft_radius=0.04,
-    tip_resolution=24,
-    shaft_resolution=24,
-    scale=arrow_scale,
+    start=pos_M - 0.5 * arrow_scale * dir_M, direction=dir_M,
+    tip_length=0.25, tip_radius=0.12,shaft_radius=0.04,
+    tip_resolution=24, shaft_resolution=24, scale=arrow_scale,
 )
 # %%
 # # ! <Pyvista> 3D plot
@@ -73,7 +78,7 @@ custom_arrow = pv.Arrow(
     shaft_resolution=24   # Smoothness of the shaft
 )
 
-arrows = mesh_vec.glyph(
+mag_arrow = mesh_vec.glyph(
     orient='vectors',
     scale='magnitude',
     factor=1.0,         
@@ -84,30 +89,31 @@ arrows = mesh_vec.glyph(
 pl = pv.Plotter(notebook=True, window_size=[800, 600], image_scale=3)
 pl.set_background('white') 
 
-# Arrows
+# Mag Arrows
 pl.add_mesh(
-    arrows,
-    scalars='magnitude',
-    cmap='plasma',        # 'plasma', 'viridis', or 'turbo' work great
+    mag_arrow,
+    color='black',
     show_scalar_bar=False)
 
 # Contour
-bd_max = np.abs(obs_bd_f).max()
-contours = GridZ0.contour(isosurfaces=20, scalars='bd', 
-                          rng=[-bd_max, bd_max])
+bc_max = np.abs(obs_bc_f).max()
+contours = GridZ0.contour(isosurfaces=20, 
+                          scalars=comp_name, 
+                          rng=[-bc_max, bc_max])
 pl.add_mesh(
     contours,
     color='black',
-    line_width=3,
+    line_width=4,
     render_lines_as_tubes=True,
 )
 
 pl.add_mesh(
     GridZ0,
-    scalars='bd',
-    cmap='turbo',
+    scalars=comp_name,
+    cmap='seismic',
+    clim=[-bc_max, bc_max],
     show_scalar_bar=True,
-    scalar_bar_args=dict(title=r'$B_z$ (nT)',
+    scalar_bar_args=dict(title=comp_label,
                          title_font_size=16, 
                          label_font_size=14,
                          position_x=0.3, 
@@ -117,16 +123,26 @@ pl.add_mesh(
 )
 
 # Dipole marker
-pl.add_mesh(dipole_arrow, color='black', show_scalar_bar=False)
+pl.add_mesh(dipole_arrow, color='cyan', show_scalar_bar=False)
+
+# Case label
+pl.add_text(f"{dip_orient.upper()}-dipole / {comp.upper()}-component",
+            position='upper_left', font_size=28, color='black',
+            font='courier', shadow=True)
+
 
 # View  
-v_az, v_el = np.deg2rad(160), np.deg2rad(-15)
+if dip_orient == 'D'and comp == 'D':
+    az = 160
+elif dip_orient == 'D'and comp == 'N':
+    az = 90
+v_az, v_el = np.deg2rad(az), np.deg2rad(-18)
 pl.view_vector([np.cos(v_el)*np.cos(v_az),
                 np.cos(v_el)*np.sin(v_az),
                 np.sin(v_el)])
 pl.camera.up = (0, 0, -1)   
 pl.camera.zoom(1.4)
-pl.camera.focal_point = (0., -5., 0.)
+pl.camera.focal_point = (0., -3., 0.)
 
 ######## * Choose for interactive 
 # pl.add_axes(color='black')
