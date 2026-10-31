@@ -39,7 +39,7 @@ print(df_pois.to_string(index=False))
 print('=' * 72)
 # %%
 # # ! Computation grid (identical for all POIs)
-M = 100.                          # Dipole moment magnitude in A\u00b7m\u00b2 (same for all)
+M = 100.                          # Dipole moment magnitude in A·m² (same for all)
 pos_M = np.array([0., 0., 10.])   # Dipole position (NED: North, East, Down)
 
 nor_1, nor_2, Nnor = -30., 30., 121
@@ -80,8 +80,8 @@ for idx, (name, (lat, lon, dec, inc)) in enumerate(POIS.items()):
     )
 
     # Labeling
-    ax.set_title(f"{name}  I={inc:+.1f}\u00b0, D={dec:+.1f}\u00b0",
-                 fontsize=10, loc='left', fontfamily='monospace')
+    ax.set_title(f"{name} \n I={inc:+.1f}\u00b0, D={dec:+.1f}\u00b0",
+                 fontsize=10, fontweight='bold', loc='center', fontfamily='monospace')
     ax.set_xlabel('East (m)')
     ax.set_ylabel('North (m)')
     ax.set_aspect('equal')
@@ -95,9 +95,9 @@ for idx, (name, (lat, lon, dec, inc)) in enumerate(POIS.items()):
     cbar.ax.tick_params(labelsize=10)
 
 fig.suptitle('TMI anomaly of an induced dipole source '
-             '(same $|m|$ = 100 A\u00b7m\u00b2, depth = 10 m)\n'
-             'magnetized along the local IGRF-13 main field (epoch 2025-01-01)',
+             r'(same $|\mathbf{m}|$ = 100 A$\cdot$m$^{2}$, depth = 10 m)'
+             '\n magnetized along the local IGRF-13 main field (epoch 2025-01-01)',
              fontsize=14)
-plt.tight_layout(rect=[0, 0, 1, 0.93])
+plt.tight_layout(rect=[0, 0, 1, 1])
 plt.savefig('tmi_poi.png', dpi=300, bbox_inches='tight')
 plt.show()
