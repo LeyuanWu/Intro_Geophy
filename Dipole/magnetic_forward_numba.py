@@ -136,6 +136,99 @@ def dipole_potential(obs, m, r0, mu0_over_4pi=1e-7):
     return V
 
 
+@njit(parallel=True)
+def dipole_tmi(obs, M, inc_m, dec_m, r0, inc_bg, dec_bg,
+               mu0_over_4pi=1e-7, degrees=True):
+    """
+    Compute the total magnetic intensity (TMI) anomaly of a single dipole.
+
+    The TMI anomaly is the projection of the magnetic anomaly vector onto
+    the direction of the background (main) magnetic field:
+
+    .. math::
+        \Delta T = \mathbf{B}_{\text{anomaly}} \cdot \hat{\mathbf{B}}_0
+
+    Parameters
+    ----------
+    obs : (N, 3) ndarray
+        Array of observation point coordinates (NED: North, East, Down).
+    M : float
+        Magnitude of the dipole moment [A·m²].
+    inc_m : float
+        Inclination of the dipole moment, positive downward from horizontal.
+    dec_m : float
+        Declination of the dipole moment, clockwise from North.
+    r0 : (3,) ndarray
+        Dipole source position.
+    inc_bg : float
+        Inclination of the background field, positive downward from horizontal.
+    dec_bg : float
+        Declination of the background field, clockwise from North.
+    mu0_over_4pi : float, optional
+        Value of :math:`\\mu_0 / (4\\pi)` in H/m. Default is 1e-7.
+    degrees : bool, optional
+        If True (default), *inc_m*, *dec_m*, *inc_bg* and *dec_bg* are
+        interpreted as degrees. If False, they are interpreted as radians.
+
+    Returns
+    -------
+    TMI : (N,) ndarray
+        Total magnetic intensity anomaly at the observation points [nT].
+    """
+    # Convert angles to radians if necessary
+    if degrees:
+        inc_m_rad = np.deg2rad(inc_m)
+        dec_m_rad = np.deg2rad(dec_m)
+        inc_bg_rad = np.deg2rad(inc_bg)
+        dec_bg_rad = np.deg2rad(dec_bg)
+    else:
+        inc_m_rad = inc_m
+        dec_m_rad = dec_m
+        inc_bg_rad = inc_bg
+        dec_bg_rad = dec_bg
+
+    # Dipole moment vector in NED (North, East, Down)
+    mx = M * np.cos(inc_m_rad) * np.cos(dec_m_rad)  
+    my = M * np.cos(inc_m_rad) * np.sin(dec_m_rad) 
+    mz = M * np.sin(inc_m_rad)        
+
+    # Background field unit vector in NED
+    b0x = np.cos(inc_bg_rad) * np.cos(dec_bg_rad)
+    b0y = np.cos(inc_bg_rad) * np.sin(dec_bg_rad)
+    b0z = np.sin(inc_bg_rad)
+
+    N = obs.shape[0]
+    TMI = np.empty(N, dtype=np.float64)
+
+    for i in prange(N):
+        rx = obs[i, 0] - r0[0]
+        ry = obs[i, 1] - r0[1]
+        rz = obs[i, 2] - r0[2]
+
+        r2 = rx * rx + ry * ry + rz * rz
+        r = np.sqrt(r2)
+        r3 = r2 * r
+
+        if r3 < 1e-15:
+            TMI[i] = 0.0
+            continue
+
+        rx_hat = rx / r
+        ry_hat = ry / r
+        rz_hat = rz / r
+
+        mdotr = mx * rx_hat + my * ry_hat + mz * rz_hat
+
+        coeff = 1.e9 * mu0_over_4pi / r3
+
+        Bx = coeff * (3.0 * mdotr * rx_hat - mx)
+        By = coeff * (3.0 * mdotr * ry_hat - my)
+        Bz = coeff * (3.0 * mdotr * rz_hat - mz)
+
+        TMI[i] = Bx * b0x + By * b0y + Bz * b0z
+
+    return TMI
+
 
 # =============================================================================
 # 2. NUMERICAL QUADRATURE
