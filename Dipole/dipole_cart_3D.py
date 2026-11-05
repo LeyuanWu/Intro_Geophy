@@ -11,7 +11,7 @@ from magnetic_forward_numba import *
 mu0 = 4 * np.pi * 1e-7   # Permeability of free space in H/m
 M = 100.                 # Dipole moment magnitude in A·m²
 dip_orient = 'D'         # 'D' = Downward dipole,    'N' = Northward dipole
-comp = 'N'               # 'D' = Downward component, 'N' = Northward component
+comp = 'D'               # 'D' = Downward component, 'N' = Northward component
 if dip_orient.upper() == 'D':
     mx, my, mz = 0., 0., M
 elif dip_orient.upper() == 'N':
